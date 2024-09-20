@@ -8,15 +8,10 @@ from flask import Flask, request
 from telegram.ext import Dispatcher, MessageHandler, Filters
 import g4f
 
-# Load OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-chat_language = os.getenv("INIT_LANGUAGE", default="zh")  # amend here to change your preset language
+chat_language = os.getenv("INIT_LANGUAGE", default="en")  # Установлен английский язык по умолчанию
 MSG_LIST_LIMIT = int(os.getenv("MSG_LIST_LIMIT", default=20))
 LANGUAGE_TABLE = {
-    "zh": "哈囉！",
-    "en": "Hello!",
-    "jp": "こんにちは"
+    "en": "Hello!"
 }
 
 class Prompts:
@@ -41,7 +36,7 @@ class ChatGPT:
         self.model = "gpt-3.5-turbo"
         self.provider = g4f.Provider.Pizzagpt
 
-    async def get_response(self):
+    async def get_response(self, chat_id):
         try:
             # Simulate typing effect
             await bot.send_chat_action(chat_id, 'typing')
@@ -83,8 +78,6 @@ def webhook_handler():
     """Set route /hook with POST method will trigger this method."""
     if request.method == "POST":
         update = telegram.Update.de_json(request.get_json(force=True), bot)
-
-        # Update dispatcher process that handler to process this message
         dispatcher.process_update(update)
     return 'ok'
 
@@ -92,7 +85,7 @@ async def reply_handler(bot, update):
     """Reply message."""
     chatgpt = ChatGPT()
     chatgpt.add_msg(update.message.text)  # Human's question
-    ai_reply_response = await chatgpt.get_response()  # ChatGPT's answer
+    ai_reply_response = await chatgpt.get_response(update.message.chat.id)  # ChatGPT's answer
     
     await update.message.reply_text(ai_reply_response)  # Reply with AI's text
 
@@ -105,4 +98,5 @@ dispatcher.add_handler(MessageHandler(Filters.text, reply_handler))
 if __name__ == "__main__":
     # Running server
     app.run(debug=True)
+
 
